@@ -6,7 +6,7 @@ dotenv.config();
 
 export const config = {
   port: parseInt(process.env.PORT || '5000', 10),
-  geminiApiKey: process.env.GEMINI_API_KEY || '',
-  supabaseUrl: process.env.SUPABASE_URL || '',
-  supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
+  geminiApiKey: process.env.GEMINI_API_KEY || 'placeholder_gemini_key',
+  supabaseUrl: process.env.SUPABASE_URL || 'https://placeholder.supabase.co',
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'placeholder-key',
 };

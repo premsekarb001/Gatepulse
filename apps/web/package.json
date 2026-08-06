@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@gatepulse/shared": "*",
+    "@supabase/supabase-js": "^2.112.2",
     "lucide-react": "^0.378.0",
     "next": "^14.2.3",
     "react": "^18.3.1",

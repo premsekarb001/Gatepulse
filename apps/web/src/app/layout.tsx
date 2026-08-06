@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/Header';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: 'GatePulse - IT Park Job Walk-in Drive Intelligence & Gate Navigator',
   description: 'Real-time verified job walk-in drives with IT park landmark gate directions, Gemini AI trust scoring, and fraud warnings.',
