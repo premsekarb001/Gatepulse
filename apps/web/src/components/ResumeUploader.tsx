@@ -78,6 +78,7 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({ onMatchComplete,
 
     try {
       let response: Response;
+      const targetUrl = apiBaseUrl ? `${apiBaseUrl.replace(/\/$/, '')}/api/v1/match-cv` : '/api/v1/match-cv';
 
       if (file) {
         setStatus('uploading');
@@ -87,7 +88,7 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({ onMatchComplete,
         setTimeout(() => setStatus('parsing'), 600);
         setTimeout(() => setStatus('matching'), 1500);
 
-        response = await fetch(`${apiBaseUrl}/api/v1/match-cv`, {
+        response = await fetch(targetUrl, {
           method: 'POST',
           body: formData,
         });
@@ -95,17 +96,23 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({ onMatchComplete,
         setStatus('parsing');
         setTimeout(() => setStatus('matching'), 800);
 
-        response = await fetch(`${apiBaseUrl}/api/v1/match-cv`, {
+        response = await fetch(targetUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cv_text: rawText.trim() }),
         });
       }
 
-      const json = await response.json();
+      const resText = await response.text();
+      let json: any = null;
+      try {
+        json = JSON.parse(resText);
+      } catch (e) {
+        throw new Error('Server returned non-JSON response. Please verify the AI matching API endpoint.');
+      }
 
       if (!response.ok || !json.success) {
-        throw new Error(json.error || 'Failed to process CV and match drives');
+        throw new Error(json?.error || 'Failed to process CV and match drives');
       }
 
       setStatus('completed');

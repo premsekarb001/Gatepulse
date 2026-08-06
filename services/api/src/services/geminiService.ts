@@ -126,7 +126,11 @@ Return ONLY valid JSON matching this schema:
 
       const jsonText = response.text;
       if (jsonText) {
-        const rawJson = JSON.parse(jsonText);
+        const cleanJsonText = jsonText
+          .replace(/^```(?:json)?/gi, '')
+          .replace(/```$/gi, '')
+          .trim();
+        const rawJson = JSON.parse(cleanJsonText);
         return extractedDriveSchema.parse(rawJson);
       }
     } catch (err) {
@@ -324,7 +328,11 @@ Return ONLY valid JSON matching this schema.
 
       const jsonText = response.text;
       if (jsonText) {
-        const rawJson = JSON.parse(jsonText);
+        const cleanJsonText = jsonText
+          .replace(/^```(?:json)?/gi, '')
+          .replace(/```$/gi, '')
+          .trim();
+        const rawJson = JSON.parse(cleanJsonText);
         return candidateProfileSchema.parse(rawJson);
       }
     } catch (err) {
