@@ -207,7 +207,7 @@ Return ONLY valid JSON matching this schema.
   return candidateProfileSchema.parse(extractCandidateProfileHeuristically(cvText));
 }
 
-function extractCandidateProfileHeuristically(text: string): CandidateProfile {
+export function extractCandidateProfileHeuristically(text: string): CandidateProfile {
   const lower = text.toLowerCase();
 
   const skillKeywords = [

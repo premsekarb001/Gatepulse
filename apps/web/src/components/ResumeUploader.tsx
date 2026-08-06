@@ -78,29 +78,41 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({ onMatchComplete,
 
     try {
       let response: Response;
-      const targetUrl = apiBaseUrl ? `${apiBaseUrl.replace(/\/$/, '')}/api/v1/match-cv` : '/api/v1/match-cv';
+      const targetUrl =
+        apiBaseUrl && !apiBaseUrl.includes('localhost')
+          ? `${apiBaseUrl.replace(/\/$/, '')}/api/v1/match-cv`
+          : '/api/v1/match-cv';
 
-      if (file) {
-        setStatus('uploading');
-        const formData = new FormData();
-        formData.append('resume', file);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-        setTimeout(() => setStatus('parsing'), 600);
-        setTimeout(() => setStatus('matching'), 1500);
+      try {
+        if (file) {
+          setStatus('uploading');
+          const formData = new FormData();
+          formData.append('resume', file);
 
-        response = await fetch(targetUrl, {
-          method: 'POST',
-          body: formData,
-        });
-      } else {
-        setStatus('parsing');
-        setTimeout(() => setStatus('matching'), 800);
+          setTimeout(() => setStatus('parsing'), 600);
+          setTimeout(() => setStatus('matching'), 1500);
 
-        response = await fetch(targetUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cv_text: rawText.trim() }),
-        });
+          response = await fetch(targetUrl, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
+          });
+        } else {
+          setStatus('parsing');
+          setTimeout(() => setStatus('matching'), 800);
+
+          response = await fetch(targetUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cv_text: rawText.trim() }),
+            signal: controller.signal,
+          });
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
 
       const resText = await response.text();
@@ -120,7 +132,11 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({ onMatchComplete,
     } catch (err: any) {
       console.error('CV Matching Error:', err);
       setStatus('error');
-      setErrorMsg(err?.message || 'Failed to connect to AI CV matching backend');
+      if (err?.name === 'AbortError') {
+        setErrorMsg('Upload request timed out (12s limit). Please check your connection or try pasting plain text resume.');
+      } else {
+        setErrorMsg(err?.message || 'Failed to connect to AI CV matching backend');
+      }
     }
   };
 
