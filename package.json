@@ -17,6 +17,10 @@
     "build:web": "npm run build --workspace=apps/web",
     "build": "npm run build:shared && npm run build --workspaces --if-present"
   },
+  "overrides": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "keywords": [
     "gatepulse",
     "walkin-drives",
