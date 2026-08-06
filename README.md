@@ -15,6 +15,10 @@ Powered by **Gemini 1.5 Flash AI**, GatePulse instantly extracts key recruitment
 - **GitHub Repository**: [https://github.com/premsekarb001/Gatepulse](https://github.com/premsekarb001/Gatepulse)
 
 ---
+##Gatepulse Android APP View
+<img width="350" height="596" alt="image" src="https://github.com/user-attachments/assets/e695644e-0bae-41cc-a55b-30ccfad001b2" />
+
+
 
 ## 🚀 System Architecture & Stack
 
