@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { parseNoticeWithGemini } from '../services/geminiService';
+import { parseNoticeWithGemini, extractTextFromFileBuffer, extractCandidateProfileFromCV, calculateDriveMatches } from '../services/geminiService';
 import { saveDriveToSupabase, getDrivesFromSupabase } from '../services/supabaseService';
-import { DriveFilterOptions } from '@gatepulse/shared';
+import { DriveFilterOptions, CandidateMatchResponse } from '@gatepulse/shared';
 
 // Zod Input Validation Schema (20 to 2000 characters)
 const ingestInputSchema = z.object({
@@ -77,6 +77,51 @@ export async function getDrivesHandler(req: Request, res: Response): Promise<voi
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : (error?.message || 'Failed to retrieve walkin drives')
+    });
+  }
+}
+
+export async function matchCVHandler(req: Request, res: Response): Promise<void> {
+  try {
+    let cvText = '';
+
+    if (req.file) {
+      cvText = await extractTextFromFileBuffer(req.file.buffer, req.file.mimetype, req.file.originalname);
+    } else if (req.body?.cv_text || req.body?.text) {
+      cvText = String(req.body.cv_text || req.body.text);
+    }
+
+    if (!cvText || cvText.trim().length < 10) {
+      res.status(400).json({
+        success: false,
+        error: 'CV file upload or cv_text parameter (at least 10 characters) is required'
+      });
+      return;
+    }
+
+    console.log(`[CV Engine] Extracting candidate profile from CV text (${cvText.length} chars)...`);
+    const candidateProfile = await extractCandidateProfileFromCV(cvText.trim());
+
+    console.log(`[CV Engine] Profile extracted (${candidateProfile.key_skills.length} skills, ${candidateProfile.total_experience_years} yrs exp). Fetching active drives...`);
+    const drives = await getDrivesFromSupabase({});
+
+    const matches = calculateDriveMatches(candidateProfile, drives);
+
+    const responsePayload: CandidateMatchResponse = {
+      candidate: candidateProfile,
+      matches
+    };
+
+    res.status(200).json({
+      success: true,
+      message: `Matched ${matches.length} active walk-in drives for candidate`,
+      data: responsePayload
+    });
+  } catch (error: any) {
+    console.error('[API Error] Match CV failed:', error);
+    res.status(500).json({
+      success: false,
+      error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : (error?.message || 'Failed to match CV with drives')
     });
   }
 }

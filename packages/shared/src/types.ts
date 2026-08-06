@@ -54,3 +54,23 @@ export function getTrustCategory(score: number): TrustCategory {
   if (score >= 50) return 'MODERATE';
   return 'LOW';
 }
+
+export interface CandidateProfile {
+  key_skills: string[];
+  total_experience_years: number;
+  target_roles: string[];
+  location_preference?: string;
+}
+
+export interface DriveMatch {
+  drive: WalkinDrive;
+  match_score: number;
+  matching_skills: string[];
+  missing_skills: string[];
+  recommendation_reason: string;
+}
+
+export interface CandidateMatchResponse {
+  candidate: CandidateProfile;
+  matches: DriveMatch[];
+}
