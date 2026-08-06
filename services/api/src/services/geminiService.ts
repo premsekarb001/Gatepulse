@@ -1,10 +1,7 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { z } from 'zod';
-import mammoth from 'mammoth';
 import { config } from '../config/env';
 import { CandidateProfile, DriveMatch, WalkinDrive } from '@gatepulse/shared';
-
-const pdfParse = require('pdf-parse');
 
 export const extractedDriveSchema = z.object({
   company_name: z.string().trim().min(1).default("Unknown Tech Corp"),
@@ -35,11 +32,14 @@ export const candidateProfileSchema = z.object({
 
 export async function parseNoticeWithGemini(rawText: string): Promise<ExtractedDriveData> {
   const apiKey = config.geminiApiKey;
+  const isApiKeyConfigured = Boolean(
+    apiKey && typeof apiKey === 'string' && apiKey.trim().length > 0 && apiKey !== 'your_gemini_api_key_here'
+  );
 
-  if (apiKey && apiKey !== 'your_gemini_api_key_here') {
+  if (isApiKeyConfigured) {
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      
+      const ai = new GoogleGenAI({ apiKey: apiKey! });
+
       const prompt = `
 You are an expert AI parser for job walk-in drive notices in India. Analyze the raw text notice below and extract structured JSON output.
 
@@ -132,6 +132,8 @@ Return ONLY valid JSON matching this schema:
     } catch (err) {
       console.warn("Gemini API call failed, falling back to smart heuristic parser:", err);
     }
+  } else {
+    console.info("[Config Guard] GEMINI_API_KEY is unconfigured; using smart heuristic drive parser.");
   }
 
   // Fallback Heuristic Parser when GEMINI_API_KEY is unset or API call is offline
@@ -229,16 +231,17 @@ function parseNoticeHeuristically(text: string): ExtractedDriveData {
 // --------------------------------------------------------------------------
 
 export async function extractTextFromFileBuffer(buffer: Buffer, mimeType: string, originalName: string): Promise<string> {
-  const ext = originalName.split('.').pop()?.toLowerCase();
+  const ext = originalName ? originalName.split('.').pop()?.toLowerCase() : '';
 
   if (mimeType === 'application/pdf' || ext === 'pdf') {
     try {
+      const pdfParse = require('pdf-parse');
       const pdfData = await pdfParse(buffer);
       if (pdfData && pdfData.text && pdfData.text.trim()) {
         return pdfData.text;
       }
     } catch (err) {
-      console.warn('PDF parsing warning, using fallback buffer text:', err);
+      console.warn('[Serverless PDF Guard] PDF parsing failed, falling back to plaintext buffer extraction:', err);
     }
   }
 
@@ -249,24 +252,33 @@ export async function extractTextFromFileBuffer(buffer: Buffer, mimeType: string
     ext === 'doc'
   ) {
     try {
+      const mammoth = require('mammoth');
       const result = await mammoth.extractRawText({ buffer });
       if (result && result.value && result.value.trim()) {
         return result.value;
       }
     } catch (err) {
-      console.warn('Mammoth docx parsing warning, using fallback buffer text:', err);
+      console.warn('[Serverless Mammoth Guard] DOCX/DOC parsing failed, falling back to plaintext buffer extraction:', err);
     }
   }
 
-  return buffer.toString('utf-8');
+  try {
+    return buffer ? buffer.toString('utf-8') : '';
+  } catch (err) {
+    console.warn('[Buffer Fallback] Raw string conversion failed:', err);
+    return '';
+  }
 }
 
 export async function extractCandidateProfileFromCV(cvText: string): Promise<CandidateProfile> {
   const apiKey = config.geminiApiKey;
+  const isApiKeyConfigured = Boolean(
+    apiKey && typeof apiKey === 'string' && apiKey.trim().length > 0 && apiKey !== 'your_gemini_api_key_here'
+  );
 
-  if (apiKey && apiKey !== 'your_gemini_api_key_here') {
+  if (isApiKeyConfigured) {
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({ apiKey: apiKey! });
 
       const prompt = `
 You are an expert AI Resume/CV Parser for software & IT job seekers in India. Analyze the raw candidate resume text below and extract candidate profile attributes.
@@ -318,6 +330,8 @@ Return ONLY valid JSON matching this schema.
     } catch (err) {
       console.warn("Gemini CV parsing failed, falling back to smart heuristic CV parser:", err);
     }
+  } else {
+    console.info("[Config Guard] GEMINI_API_KEY is unconfigured; using smart heuristic CV parser.");
   }
 
   return candidateProfileSchema.parse(extractCandidateProfileHeuristically(cvText));
