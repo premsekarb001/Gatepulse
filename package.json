@@ -15,7 +15,7 @@
     "build:shared": "npm run build --workspace=packages/shared",
     "build:api": "npm run build --workspace=services/api",
     "build:web": "npm run build --workspace=apps/web",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build:shared && npm run build --workspaces --if-present"
   },
   "keywords": [
     "gatepulse",
