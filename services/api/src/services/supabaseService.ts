@@ -123,7 +123,7 @@ const initialMockDrives: WalkinDrive[] = [
 const inMemoryStore: WalkinDrive[] = [...initialMockDrives];
 
 export async function saveDriveToSupabase(data: ExtractedDriveData, rawText: string): Promise<WalkinDrive> {
-  const newDriveRecord: Partial<WalkinDrive> = {
+  const newDriveRecord: Record<string, any> = {
     company_name: data.company_name,
     job_title: data.job_title,
     experience_range: data.experience_range,
@@ -138,10 +138,11 @@ export async function saveDriveToSupabase(data: ExtractedDriveData, rawText: str
     trust_score: data.trust_score,
     contains_payment_demand: data.contains_payment_demand,
     raw_text: rawText,
-    contact_email: data.contact_email,
-    venue_address: data.venue_address,
     created_at: new Date().toISOString()
   };
+
+  if (data.contact_email) newDriveRecord.contact_email = data.contact_email;
+  if (data.venue_address) newDriveRecord.venue_address = data.venue_address;
 
   if (supabaseClient) {
     try {
