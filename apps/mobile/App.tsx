@@ -17,7 +17,7 @@ import { WalkinDrive, CandidateMatchResponse, DriveMatch } from '@gatepulse/shar
 import { DriveMobileCard } from './src/components/DriveMobileCard';
 import { MobileResumeUploader } from './src/components/MobileResumeUploader';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || process.env.REACT_NATIVE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || process.env.REACT_NATIVE_API_URL || 'https://gatepulse-xi.vercel.app';
 
 const SEED_DRIVES: WalkinDrive[] = [
   {

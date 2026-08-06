@@ -65,11 +65,14 @@ export const MobileResumeUploader: React.FC<MobileResumeUploaderProps> = ({
 
       formData.append('resume', fileToUpload);
 
-      const res = await fetch(`${apiBaseUrl}/api/v1/match-cv`, {
+      const targetBaseUrl =
+        apiBaseUrl && !apiBaseUrl.includes('localhost')
+          ? apiBaseUrl
+          : process.env.EXPO_PUBLIC_API_URL || 'https://gatepulse-xi.vercel.app';
+      const fetchUrl = `${targetBaseUrl.replace(/\/$/, '')}/api/v1/match-cv`;
+
+      const res = await fetch(fetchUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
         body: formData,
       });
 
