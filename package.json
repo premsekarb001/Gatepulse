@@ -12,6 +12,8 @@
     "dev:api": "npm run dev --workspace=services/api",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:mobile": "npm run start --workspace=apps/mobile",
+    "auto-sync": "node scripts/auto-sync.js",
+    "watch-sync": "node scripts/watch-and-sync.js",
     "build:shared": "npm run build --workspace=packages/shared",
     "build:api": "npm run build --workspace=services/api",
     "build:web": "npm run build --workspace=apps/web",
