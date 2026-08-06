@@ -14,10 +14,10 @@
     "dev:mobile": "npm run start --workspace=apps/mobile",
     "auto-sync": "node scripts/auto-sync.js",
     "watch-sync": "node scripts/watch-and-sync.js",
-    "build:shared": "npm run build --workspace=packages/shared",
+    "build:shared": "npm --prefix packages/shared run build",
     "build:api": "npm run build --workspace=services/api",
-    "build:web": "npm run build --workspace=apps/web",
-    "build": "npm run build:shared && npm run build --workspaces --if-present"
+    "build:web": "npm --prefix apps/web run build",
+    "build": "npm run build:shared && npm run build:web"
   },
   "overrides": {
     "react": "^18.3.1",
