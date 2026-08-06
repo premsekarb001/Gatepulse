@@ -1,27 +1,44 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { parseNoticeWithGemini } from '../services/geminiService';
 import { saveDriveToSupabase, getDrivesFromSupabase } from '../services/supabaseService';
 import { DriveFilterOptions } from '@gatepulse/shared';
 
+// Zod Input Validation Schema (20 to 2000 characters)
+const ingestInputSchema = z.object({
+  raw_text: z
+    .string({ required_error: 'raw_text is required' })
+    .min(20, 'Job notice text must be at least 20 characters long')
+    .max(2000, 'Job notice text cannot exceed 2,000 characters')
+});
+
 export async function parseAndSaveDriveHandler(req: Request, res: Response): Promise<void> {
   try {
-    const rawText = req.body.raw_text || req.body.rawText || req.body.text || (typeof req.body === 'string' ? req.body : '');
+    // Normalize payload key (rawText / text -> raw_text)
+    const rawInput = {
+      raw_text: req.body?.raw_text || req.body?.rawText || req.body?.text || (typeof req.body === 'string' ? req.body : '')
+    };
 
-    if (!rawText || typeof rawText !== 'string' || rawText.trim().length === 0) {
+    // Zod schema validation
+    const validationResult = ingestInputSchema.safeParse(rawInput);
+
+    if (!validationResult.success) {
+      const formattedErrors = validationResult.error.errors.map(err => err.message).join('; ');
       res.status(400).json({
         success: false,
-        error: 'Missing or empty raw job notice text in request body'
+        error: formattedErrors || 'Validation failed for raw job notice text'
       });
       return;
     }
 
-    console.log(`[API] Ingesting & parsing raw text (${rawText.length} chars)...`);
+    const validRawText = validationResult.data.raw_text.trim();
+    console.log(`[API Security] Passed Zod validation for raw text (${validRawText.length} chars). Calling Gemini 1.5 Flash...`);
     
     // 1. Call Gemini 1.5 Flash AI parser
-    const parsedData = await parseNoticeWithGemini(rawText.trim());
+    const parsedData = await parseNoticeWithGemini(validRawText);
 
     // 2. Save extracted JSON to Supabase walkin_drives table
-    const savedDrive = await saveDriveToSupabase(parsedData, rawText.trim());
+    const savedDrive = await saveDriveToSupabase(parsedData, validRawText);
 
     res.status(201).json({
       success: true,
@@ -33,8 +50,7 @@ export async function parseAndSaveDriveHandler(req: Request, res: Response): Pro
     console.error('[API Error] Ingest failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to parse and save job walkin drive',
-      details: error?.message || String(error)
+      error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : (error?.message || 'Failed to parse job notice')
     });
   }
 }
@@ -60,8 +76,7 @@ export async function getDrivesHandler(req: Request, res: Response): Promise<voi
     console.error('[API Error] Fetch drives failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve walkin drives',
-      details: error?.message || String(error)
+      error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : (error?.message || 'Failed to retrieve walkin drives')
     });
   }
 }
