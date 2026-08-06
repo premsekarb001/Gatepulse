@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "framework": "nextjs",
   "buildCommand": "npm run build:shared && npm --prefix apps/web run build",
   "installCommand": "npm install"
 }
