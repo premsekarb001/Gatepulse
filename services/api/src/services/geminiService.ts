@@ -1,23 +1,26 @@
 import { GoogleGenAI, Type } from '@google/genai';
+import { z } from 'zod';
 import { config } from '../config/env';
 
-export interface ExtractedDriveData {
-  company_name: string;
-  job_title: string;
-  experience_range: string;
-  experience_min: number;
-  experience_max: number;
-  walkin_start_date: string;
-  walkin_end_date?: string;
-  time_slot?: string;
-  city: string;
-  it_park_name: string;
-  landmark_gate: string;
-  trust_score: number;
-  contains_payment_demand: boolean;
-  contact_email?: string;
-  venue_address?: string;
-}
+export const extractedDriveSchema = z.object({
+  company_name: z.string().trim().min(1).default("Unknown Tech Corp"),
+  job_title: z.string().trim().min(1).default("Software Engineer"),
+  experience_range: z.string().trim().default("0-3 Years"),
+  experience_min: z.number().nonnegative().default(0),
+  experience_max: z.number().nonnegative().default(3),
+  walkin_start_date: z.string().trim().default(() => new Date().toISOString().split('T')[0]),
+  walkin_end_date: z.string().trim().optional(),
+  time_slot: z.string().trim().optional(),
+  city: z.string().trim().min(1).default("Bengaluru"),
+  it_park_name: z.string().trim().min(1).default("Manyata Tech Park"),
+  landmark_gate: z.string().trim().min(1).default("Gate 2 (Visitor Entry)"),
+  trust_score: z.number().transform(s => Math.min(100, Math.max(0, s))).default(85),
+  contains_payment_demand: z.boolean().default(false),
+  contact_email: z.string().trim().optional(),
+  venue_address: z.string().trim().optional()
+});
+
+export type ExtractedDriveData = z.infer<typeof extractedDriveSchema>;
 
 export async function parseNoticeWithGemini(rawText: string): Promise<ExtractedDriveData> {
   const apiKey = config.geminiApiKey;
@@ -112,24 +115,8 @@ Return ONLY valid JSON matching this schema:
 
       const jsonText = response.text;
       if (jsonText) {
-        const parsed = JSON.parse(jsonText);
-        return {
-          company_name: parsed.company_name || "Unknown Tech Corp",
-          job_title: parsed.job_title || "Software Engineer",
-          experience_range: parsed.experience_range || "0-3 Years",
-          experience_min: parsed.experience_min ?? 0,
-          experience_max: parsed.experience_max ?? 3,
-          walkin_start_date: parsed.walkin_start_date || new Date().toISOString().split('T')[0],
-          walkin_end_date: parsed.walkin_end_date,
-          time_slot: parsed.time_slot || "09:30 AM - 02:00 PM",
-          city: parsed.city || "Bengaluru",
-          it_park_name: parsed.it_park_name || "Manyata Tech Park",
-          landmark_gate: parsed.landmark_gate || "Gate 2 (Visitor Entry)",
-          trust_score: Math.min(100, Math.max(0, parsed.trust_score ?? 85)),
-          contains_payment_demand: Boolean(parsed.contains_payment_demand),
-          contact_email: parsed.contact_email,
-          venue_address: parsed.venue_address
-        };
+        const rawJson = JSON.parse(jsonText);
+        return extractedDriveSchema.parse(rawJson);
       }
     } catch (err) {
       console.warn("Gemini API call failed, falling back to smart heuristic parser:", err);
@@ -137,7 +124,7 @@ Return ONLY valid JSON matching this schema:
   }
 
   // Fallback Heuristic Parser when GEMINI_API_KEY is unset or API call is offline
-  return parseNoticeHeuristically(rawText);
+  return extractedDriveSchema.parse(parseNoticeHeuristically(rawText));
 }
 
 function parseNoticeHeuristically(text: string): ExtractedDriveData {

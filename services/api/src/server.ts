@@ -39,10 +39,23 @@ app.use(
 app.use(express.json({ limit: '50kb' }));
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
-// 4. Rate Limiting Middleware for /api/v1/ingest/* (Max 10 requests per 15 min window per IP)
+// 4. Rate Limiting Middleware
+// General rate limiter for all public /api/v1 endpoints (Max 100 requests per 15 min window per IP)
+const apiGeneralRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many requests from this IP. Please try again in 15 minutes.'
+  }
+});
+
+// Strict rate limiter for /api/v1/ingest/* (Max 10 requests per 15 min window per IP)
 const ingestRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Max 10 requests per 15-min window
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -51,7 +64,8 @@ const ingestRateLimiter = rateLimit({
   }
 });
 
-// Apply rate limiter to ingest route
+// Apply rate limiters
+app.use('/api/v1', apiGeneralRateLimiter);
 app.use('/api/v1/ingest', ingestRateLimiter);
 
 // Mount V1 API routes

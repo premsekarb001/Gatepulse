@@ -8,9 +8,11 @@ interface DriveCardProps {
 }
 
 export const DriveCard: React.FC<DriveCardProps> = ({ drive }) => {
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${drive.it_park_name}, ${drive.landmark_gate}, ${drive.city}`
-  )}`;
+  const locationParts = [drive.it_park_name, drive.landmark_gate, drive.city].filter(Boolean);
+  const locationString = locationParts.length > 0 ? locationParts.join(', ') : 'Walkin Drive Venue';
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationString)}`;
+
+  const formattedDate = drive.created_at ? drive.created_at.slice(0, 10) : 'Active';
 
   return (
     <div className="glass-card glass-card-hover rounded-2xl p-5 border border-slate-800 flex flex-col justify-between relative overflow-hidden group">
@@ -87,7 +89,7 @@ export const DriveCard: React.FC<DriveCardProps> = ({ drive }) => {
       {/* Card Footer Actions */}
       <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
         <span className="text-[11px] text-slate-400 font-mono">
-          Posted: {drive.created_at ? new Date(drive.created_at).toLocaleDateString() : 'Active'}
+          Posted: {formattedDate}
         </span>
         <a
           href={googleMapsUrl}

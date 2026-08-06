@@ -16,7 +16,7 @@ import {
 import { WalkinDrive } from '@gatepulse/shared';
 import { DriveMobileCard } from './src/components/DriveMobileCard';
 
-const API_BASE_URL = 'http://localhost:5000'; // Default API endpoint for development
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || process.env.REACT_NATIVE_API_URL || 'http://localhost:5000';
 
 const SEED_DRIVES: WalkinDrive[] = [
   {
@@ -89,12 +89,14 @@ export default function App() {
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}/api/v1/drives`);
-      const json = await res.json();
-      if (res.ok && json.success && Array.isArray(json.data) && json.data.length > 0) {
-        setDrives(json.data);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          setDrives(json.data);
+        }
       }
     } catch (e) {
-      console.log('Mobile API sync using local drive dataset');
+      console.log('Mobile API sync using local drive dataset fallback:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,16 +113,17 @@ export default function App() {
   };
 
   const filteredDrives = drives.filter((d) => {
-    if (selectedCity !== 'All Cities' && d.city.toLowerCase() !== selectedCity.toLowerCase()) {
+    if (!d) return false;
+    if (selectedCity !== 'All Cities' && (d.city || '').toLowerCase() !== selectedCity.toLowerCase()) {
       return false;
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matches =
-        d.company_name.toLowerCase().includes(q) ||
-        d.job_title.toLowerCase().includes(q) ||
-        d.it_park_name.toLowerCase().includes(q) ||
-        d.landmark_gate.toLowerCase().includes(q);
+        (d.company_name || '').toLowerCase().includes(q) ||
+        (d.job_title || '').toLowerCase().includes(q) ||
+        (d.it_park_name || '').toLowerCase().includes(q) ||
+        (d.landmark_gate || '').toLowerCase().includes(q);
       if (!matches) return false;
     }
     return true;
@@ -179,7 +182,7 @@ export default function App() {
       ) : (
         <FlatList
           data={filteredDrives}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => (item && item.id ? String(item.id) : `drive-${index}`)}
           renderItem={({ item }) => <DriveMobileCard drive={item} />}
           contentContainerStyle={styles.listContent}
           refreshControl={
